@@ -18,7 +18,7 @@ function showMessage(message, type = 'success') {
 
     if (!container.length) {
         container = $('<div id="messageContainer" class="mb-2"></div>');
-        $('.container').first().prepend(container);
+        $('.page-wrap').first().prepend(container);
     }
 
     const alert = $(`
@@ -145,6 +145,9 @@ $(document).ready(function() {
             contentType: 'application/json',
             data: JSON.stringify(payload)
         }).done(function(response) {
+            if (document.activeElement) {
+                document.activeElement.blur();
+            }
             surveyModal.hide();
             loadSurveys();
             showMessage(response.message, 'success');
@@ -172,6 +175,9 @@ $(document).ready(function() {
             processData: false,
             contentType: false
         }).done(function(response) {
+            if (document.activeElement) {
+                document.activeElement.blur();
+            }
             uploadModal.hide();
             showMessage(response.message, 'success');
         }).fail(function(xhr) {
