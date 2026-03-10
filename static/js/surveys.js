@@ -22,13 +22,25 @@ function showMessage(message, type = 'success') {
     }
 
     const alert = $(`
-        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert" tabindex="-1">
             ${escapeHtml(message)}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     `);
 
     container.empty().append(alert);
+
+    // Scroll to the message so the user sees the feedback
+    if (container.offset()) {
+        $('html, body').animate({
+            scrollTop: container.offset().top - 20
+        }, 300);
+    }
+
+    // Move keyboard focus to the message for accessibility
+    setTimeout(function() {
+        alert.focus();
+    }, 100);
 }
 
 function resetSurveyForm() {
