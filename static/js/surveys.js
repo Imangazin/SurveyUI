@@ -19,7 +19,7 @@ function resetSurveyForm() {
 }
 
 function loadSurveys() {
-    $.getJSON('/api/surveys', function(response) {
+    $.getJSON('api/surveys', function(response) {
         surveyTable.clear();
         surveyTable.rows.add(response.data);
         surveyTable.draw();
@@ -114,7 +114,7 @@ $(document).ready(function() {
         };
 
         $.ajax({
-            url: surveyId ? `/api/surveys/${surveyId}` : '/api/surveys',
+            url: surveyId ? `api/surveys/${surveyId}` : 'api/surveys',
             method: surveyId ? 'PUT' : 'POST',
             contentType: 'application/json',
             data: JSON.stringify(payload)
@@ -140,7 +140,7 @@ $(document).ready(function() {
         formData.append('file', file);
 
         $.ajax({
-            url: `/api/surveys/${surveyId}/assignments/upload`,
+            url: `api/surveys/${surveyId}/assignments/upload`,
             method: 'POST',
             data: formData,
             processData: false,
