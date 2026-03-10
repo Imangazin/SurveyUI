@@ -55,7 +55,7 @@ $(document).ready(function() {
     surveyTable = $('#surveysTable').DataTable({
         pageLength: 5,
         lengthChange: false,
-        order: [[2, 'asc']],
+        order: [[3, 'desc']],
         autoWidth: false,
         columns: [
             { data: 'name' },
@@ -77,11 +77,12 @@ $(document).ready(function() {
                 data: null,
                 orderable: false,
                 searchable: false,
-                render: function() {
+                render: function(data, type, row) {
+                    const disabled = row.status === 'Expired' ? 'disabled' : '';
                     return `
                         <div class="action-btns">
-                            <button class="btn btn-sm btn-outline-primary edit-survey">Edit</button>
-                            <button class="btn btn-sm btn-outline-success upload-assignments">Upload CSV</button>
+                            <button class="btn btn-sm btn-outline-primary edit-survey" ${disabled}>Edit</button>
+                            <button class="btn btn-sm btn-outline-success upload-assignments" ${disabled}>Upload Links CSV</button>
                         </div>
                     `;
                 }

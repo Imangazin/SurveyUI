@@ -79,15 +79,33 @@
             <div class="modal-content">
                 <form id="uploadForm" enctype="multipart/form-data">
                     <div class="modal-header">
-                        <h5 class="modal-title">Upload Survey Assignments CSV</h5>
+                        <h5 class="modal-title">Upload Survey Links CSV</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
                         <input type="hidden" id="uploadSurveyId" name="surveyId">
                         <div class="mb-2"><strong>Selected Survey:</strong> <span id="uploadSurveyName"></span></div>
                         <div class="alert alert-info py-2 small">
-                            CSV must include headers: <strong>studentId</strong>, <strong>surveyLink</strong>.<br>
-                            Optional headers: <strong>isSent</strong>, <strong>isCompleted</strong>.
+                            CSV must include headers: <strong>studentId</strong>, <strong>surveyLink</strong>.
+                            <div class="mt-2">Example CSV format:</div>
+                            <table class="table table-sm table-bordered mt-1 mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>studentId</th>
+                                        <th>surveyLink</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>123456</td>
+                                        <td>https://example.com/survey/abc123</td>
+                                    </tr>
+                                    <tr>
+                                        <td>234567</td>
+                                        <td>https://example.com/survey/def456</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                         <div class="mb-3">
                             <label for="csvFile" class="form-label">CSV File</label>
