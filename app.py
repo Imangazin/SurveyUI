@@ -11,6 +11,8 @@ from pylti1p3.contrib.flask import FlaskCacheDataStorage
 from pylti1p3.tool_config import ToolConfJsonFile
 import mysql.connector
 
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 load_dotenv()
 
 SECRET_KEY = os.getenv("FLASK_SECRET_KEY")
@@ -22,18 +24,10 @@ DB_CONFIG = {
     "database": os.getenv("DB_NAME"),
 }
 
-class ReverseProxied:
-    def __init__(self, app):
-        self.app = app
-
-    def __call__(self, environ, start_response):
-        scheme = environ.get("HTTP_X_FORWARDED_PROTO")
-        if scheme:
-            environ["wsgi.url_scheme"] = scheme
-        return self.app(environ, start_response)
 
 app = Flask(__name__)
-app.wsgi_app = ReverseProxied(app.wsgi_app)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1, x_prefix=1)
+app.config["APPLICATION_ROOT"] = "/surveyui"
 app.secret_key = SECRET_KEY
 
 app.config.from_mapping(
