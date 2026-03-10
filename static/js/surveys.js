@@ -13,6 +13,24 @@ function statusClass(status) {
     return 'status-unknown';
 }
 
+function showMessage(message, type = 'success') {
+    let container = $('#messageContainer');
+
+    if (!container.length) {
+        container = $('<div id="messageContainer" class="mb-2"></div>');
+        $('.container').first().prepend(container);
+    }
+
+    const alert = $(`
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${escapeHtml(message)}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `);
+
+    container.empty().append(alert);
+}
+
 function resetSurveyForm() {
     $('#surveyForm')[0].reset();
     $('#surveyId').val('');
@@ -57,6 +75,7 @@ $(document).ready(function() {
         lengthChange: false,
         order: [[3, 'desc']],
         autoWidth: false,
+        dom: '<"top d-flex justify-content-between align-items-center flex-wrap gap-2"f>rt<"bottom"ip><"clear">',
         columns: [
             { data: 'name' },
             {
@@ -92,6 +111,12 @@ $(document).ready(function() {
 
     loadSurveys();
 
+    const filterContainer = $('#surveysTable_filter');
+    const anchor = $('#tableControlsAnchor');
+    if (filterContainer.length && anchor.length) {
+        anchor.replaceWith(filterContainer);
+    }
+
     $('#addSurveyBtn').on('click', openAddSurveyModal);
 
     $('#surveysTable tbody').on('click', 'button.edit-survey', function() {
@@ -122,9 +147,9 @@ $(document).ready(function() {
         }).done(function(response) {
             surveyModal.hide();
             loadSurveys();
-            console.error(response.message);
+            showMessage(response.message, 'success');
         }).fail(function(xhr) {
-            console.error(xhr.responseJSON?.error || 'Failed to save survey.');
+            showMessage(xhr.responseJSON?.error || 'Failed to save survey.', 'danger');
         });
     });
 
@@ -133,7 +158,7 @@ $(document).ready(function() {
         const surveyId = $('#uploadSurveyId').val();
         const file = $('#csvFile')[0].files[0];
         if (!file) {
-            console.error('Please choose a CSV file.');
+            showMessage('Please choose a CSV file.', 'warning');
             return;
         }
 
@@ -148,9 +173,9 @@ $(document).ready(function() {
             contentType: false
         }).done(function(response) {
             uploadModal.hide();
-            console.error(response.message);
+            showMessage(response.message, 'success');
         }).fail(function(xhr) {
-            console.error(xhr.responseJSON?.error || 'Failed to upload CSV.');
+            showMessage(xhr.responseJSON?.error || 'Failed to upload CSV.', 'danger');
         });
     });
 });
