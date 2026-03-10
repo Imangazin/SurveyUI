@@ -16,6 +16,8 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 load_dotenv()
 
 SECRET_KEY = os.getenv("FLASK_SECRET_KEY")
+CACHE_DIR = os.getenv("FLASK_CACHE_DIR", "/tmp/surveyui-flask-cache")
+os.makedirs(CACHE_DIR, exist_ok=True)
 DB_CONFIG = {
     "host": os.getenv("DB_HOST"),
     "port": int(os.getenv("DB_PORT")),
@@ -32,8 +34,9 @@ app.secret_key = SECRET_KEY
 
 app.config.from_mapping(
     DEBUG=True,
-    CACHE_TYPE="simple",
+    CACHE_TYPE="FileSystemCache",
     CACHE_DEFAULT_TIMEOUT=600,
+    CACHE_DIR=CACHE_DIR,
     SECRET_KEY=SECRET_KEY,
     SESSION_TYPE="filesystem",
     SESSION_FILE_DIR=mkdtemp(),
