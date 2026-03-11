@@ -165,6 +165,14 @@ def create_survey():
 
     if not name:
         return jsonify({"error": "Name is required."}), 400
+    if not description.strip():
+        return jsonify({"error": "Description is required."}), 400
+    if not start_date:
+        return jsonify({"error": "Start date is required."}), 400
+    if not end_date:
+        return jsonify({"error": "End date is required."}), 400
+    if start_date > end_date:
+        return jsonify({"error": "Start date cannot be after end date."}), 400
 
     conn = None
     cursor = None
@@ -201,6 +209,14 @@ def update_survey(survey_id):
 
     if not name:
         return jsonify({"error": "Name is required."}), 400
+    if not description.strip():
+        return jsonify({"error": "Description is required."}), 400
+    if not start_date:
+        return jsonify({"error": "Start date is required."}), 400
+    if not end_date:
+        return jsonify({"error": "End date is required."}), 400
+    if start_date > end_date:
+        return jsonify({"error": "Start date cannot be after end date."}), 400
 
     conn = None
     cursor = None
@@ -263,8 +279,6 @@ def upload_assignments(survey_id):
         row_number += 1
         student_id = (row.get("studentId") or "").strip()
         survey_link = (row.get("surveyLink") or "").strip()
-        is_sent = (row.get("isSent") or "0").strip() or "0"
-        is_completed = (row.get("isCompleted") or "0").strip() or "0"
 
         if not student_id or not survey_link:
             return jsonify({"error": f"Row {row_number} is missing studentId or surveyLink."}), 400
@@ -274,8 +288,8 @@ def upload_assignments(survey_id):
                 student_id,
                 survey_id,
                 survey_link,
-                1 if is_sent in {"1", "true", "TRUE", "yes", "YES"} else 0,
-                1 if is_completed in {"1", "true", "TRUE", "yes", "YES"} else 0,
+                0,
+                0,
             )
         )
 
