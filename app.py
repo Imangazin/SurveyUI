@@ -248,6 +248,49 @@ def update_survey(survey_id):
         if conn:
             conn.close()
 
+@app.route("/api/surveys/<int:survey_id>", methods=["DELETE"])
+def delete_survey(survey_id):
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT surveyId, startDate, endDate
+            FROM surveys
+            WHERE surveyId = %s
+            """,
+            (survey_id,),
+        )
+        row = cursor.fetchone()
+
+        if row is None:
+            return jsonify({"error": "Survey not found."}), 404
+
+        status = compute_status(row[1], row[2])
+        if status != "Upcoming":
+            return jsonify({"error": "Only Upcoming surveys can be deleted."}), 400
+
+        cursor.execute(
+            """
+            DELETE FROM surveys
+            WHERE surveyId = %s
+            """,
+            (survey_id,),
+        )
+        conn.commit()
+        return jsonify({"message": "Survey deleted successfully."})
+    except Exception as exc:
+        if conn:
+            conn.rollback()
+        return jsonify({"error": str(exc)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
 
 @app.route("/api/surveys/<int:survey_id>/assignments/upload", methods=["POST"])
 def upload_assignments(survey_id):
@@ -309,6 +352,9 @@ def upload_assignments(survey_id):
             """
             INSERT INTO survey_assignments (studentId, surveyId, surveyLink, isSent, isCompleted)
             VALUES (%s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                surveyLink = VALUES(surveyLink),
+                updatedAt = CURRENT_TIMESTAMP
             """,
             rows_to_insert,
         )

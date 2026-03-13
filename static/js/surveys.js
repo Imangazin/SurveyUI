@@ -110,10 +110,12 @@ $(document).ready(function() {
                 searchable: false,
                 render: function(data, type, row) {
                     const disabled = row.status === 'Expired' ? 'disabled' : '';
+                    const deleteDisabled = row.status !== 'Upcoming' ? 'disabled' : '';
                     return `
                         <div class="action-btns">
                             <button class="btn btn-sm btn-outline-primary edit-survey" ${disabled}>Edit</button>
                             <button class="btn btn-sm btn-outline-success upload-assignments" ${disabled}>Upload Links CSV</button>
+                            <button class="btn btn-sm btn-outline-danger delete-survey" ${deleteDisabled}>Delete</button>
                         </div>
                     `;
                 }
@@ -139,6 +141,27 @@ $(document).ready(function() {
     $('#surveysTable tbody').on('click', 'button.upload-assignments', function() {
         const rowData = surveyTable.row($(this).closest('tr')).data();
         openUploadModal(rowData);
+    });
+
+    $('#surveysTable tbody').on('click', 'button.delete-survey', function() {
+        const rowData = surveyTable.row($(this).closest('tr')).data();
+        if (!rowData || rowData.status !== 'Upcoming') {
+            return;
+        }
+
+        if (!confirm(`Delete survey "${rowData.name}"?`)) {
+            return;
+        }
+
+        $.ajax({
+            url: `api/surveys/${rowData.surveyId}`,
+            method: 'DELETE'
+        }).done(function(response) {
+            loadSurveys();
+            showMessage(response.message || 'Survey deleted.', 'success');
+        }).fail(function(xhr) {
+            showMessage(xhr.responseJSON?.error || 'Failed to delete survey.', 'danger');
+        });
     });
 
     $('#surveyForm').on('submit', function(e) {
