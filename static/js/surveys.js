@@ -116,8 +116,8 @@ $(document).ready(function() {
                     return `
                         <div class="action-btns">
                             <button class="btn btn-sm btn-outline-primary edit-survey" ${disabled}>Edit</button>
-                            <button class="btn btn-sm btn-outline-success upload-assignments" ${disabled}>Upload Links CSV</button>
                             <button class="btn btn-sm btn-outline-danger delete-survey" ${deleteDisabled}>Delete</button>
+                            <button class="btn btn-sm btn-outline-success upload-assignments" ${disabled}>Upload Links CSV</button>
                         </div>
                     `;
                 }
