@@ -1,6 +1,8 @@
 let surveyTable;
 const surveyModal = new bootstrap.Modal(document.getElementById('surveyModal'));
 const uploadModal = new bootstrap.Modal(document.getElementById('uploadModal'));
+const deleteConfirmModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+let pendingDeleteSurvey = null;
 
 function escapeHtml(value) {
     return $('<div>').text(value || '').html();
@@ -149,17 +151,35 @@ $(document).ready(function() {
             return;
         }
 
-        if (!confirm(`Delete survey "${rowData.name}"?`)) {
+        pendingDeleteSurvey = rowData;
+        $('#confirmDeleteBtn').data('surveyId', rowData.surveyId);
+        $('#deleteConfirmModal .modal-body .mb-0').text(`Are you sure you want to delete survey "${rowData.name}"?`);
+        deleteConfirmModal.show();
+    });
+
+    $('#confirmDeleteBtn').on('click', function() {
+        const surveyId = $(this).data('surveyId');
+        if (!surveyId || !pendingDeleteSurvey) {
             return;
         }
 
+        if (document.activeElement) {
+            document.activeElement.blur();
+        }
+
         $.ajax({
-            url: `api/surveys/${rowData.surveyId}`,
+            url: `api/surveys/${surveyId}`,
             method: 'DELETE'
         }).done(function(response) {
+            deleteConfirmModal.hide();
+            pendingDeleteSurvey = null;
+            $('#confirmDeleteBtn').removeData('surveyId');
             loadSurveys();
             showMessage(response.message || 'Survey deleted.', 'success');
         }).fail(function(xhr) {
+            deleteConfirmModal.hide();
+            pendingDeleteSurvey = null;
+            $('#confirmDeleteBtn').removeData('surveyId');
             showMessage(xhr.responseJSON?.error || 'Failed to delete survey.', 'danger');
         });
     });
