@@ -89,6 +89,7 @@ def serialize_survey(row):
         "startDate": start_date.isoformat() if start_date else "",
         "endDate": end_date.isoformat() if end_date else "",
         "status": compute_status(start_date, end_date),
+        "updatedAt": row[7].isoformat() if row[7] else "",
     }
 
 
@@ -139,9 +140,24 @@ def get_surveys():
         cursor = conn.cursor()
         cursor.execute(
             """
-            SELECT surveyId, name, description, startDate, endDate
-            FROM surveys
-            ORDER BY startDate ASC, surveyId ASC
+            SELECT
+                s.surveyId,
+                s.name,
+                s.description,
+                s.startDate,
+                s.endDate,
+                s.createdAt,
+                s.updatedAt,
+                GREATEST(
+                    s.updatedAt,
+                    COALESCE(MAX(sa.updatedAt), s.updatedAt)
+                ) AS latestChangeAt
+            FROM surveys s
+            LEFT JOIN survey_assignments sa
+                ON sa.surveyId = s.surveyId
+            GROUP BY
+                s.surveyId, s.name, s.description, s.startDate, s.endDate, s.createdAt, s.updatedAt
+            ORDER BY s.startDate ASC, s.surveyId ASC
             """
         )
         rows = cursor.fetchall()

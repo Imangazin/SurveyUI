@@ -15,6 +15,27 @@ function statusClass(status) {
     return 'status-unknown';
 }
 
+function isPendingBrightspaceSync(updatedAt) {
+    if (!updatedAt) {
+        return false;
+    }
+
+    const updated = new Date(updatedAt);
+    if (Number.isNaN(updated.getTime())) {
+        return false;
+    }
+
+    const now = new Date();
+    const lastSync = new Date(now);
+    lastSync.setHours(7, 0, 0, 0);
+
+    if (now < lastSync) {
+        lastSync.setDate(lastSync.getDate() - 1);
+    }
+
+    return updated > lastSync;
+}
+
 function showMessage(message, type = 'success') {
     let container = $('#messageContainer');
 
@@ -91,7 +112,15 @@ $(document).ready(function() {
         autoWidth: false,
         dom: '<"top d-flex justify-content-between align-items-center flex-wrap gap-2"f>rt<"bottom"ip><"clear">',
         columns: [
-            { data: 'name' },
+            {
+                data: 'name',
+                render: function(data, type, row) {
+                    const pendingNote = isPendingBrightspaceSync(row.updatedAt)
+                        ? '<div class="small text-warning mt-1">Not in Brightspace</div>'
+                        : '';
+                    return '<div><div>' + escapeHtml(data || '') + '</div>' + pendingNote + '</div>';
+                }
+            },
             {
                 data: 'description',
                 render: function(data) {
