@@ -116,7 +116,7 @@ $(document).ready(function() {
                 data: 'name',
                 render: function(data, type, row) {
                     const pendingNote = isPendingBrightspaceSync(row.updatedAt)
-                        ? '<div class="small text-warning mt-1">Not in Brightspace</div>'
+                        ? '<div class="small text-warning mt-1">Changes will apply tomorrow at 7:00 am.</div>'
                         : '';
                     return '<div><div>' + escapeHtml(data || '') + '</div>' + pendingNote + '</div>';
                 }
