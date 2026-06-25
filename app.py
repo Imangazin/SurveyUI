@@ -1,9 +1,10 @@
-import os, io, csv
+import os, io, csv, uuid
 from dotenv import load_dotenv
 from datetime import date
+from functools import wraps
 from tempfile import mkdtemp
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, session
 from flask_caching import Cache
 from pylti1p3.contrib.flask import FlaskOIDCLogin, FlaskMessageLaunch
 from pylti1p3.contrib.flask.request import FlaskRequest
@@ -50,6 +51,7 @@ cache = Cache(app)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 tool_conf = ToolConfJsonFile(os.path.join(BASE_DIR, "tool_config.json"))
+WORKFLOW_CACHE_PREFIX = "surveyui-workflow:"
 
 
 def get_launch_data_storage():
@@ -57,6 +59,47 @@ def get_launch_data_storage():
 
 def get_db_connection():
     return mysql.connector.connect(**DB_CONFIG)
+
+
+def workflow_cache_key(workflow_id):
+    return WORKFLOW_CACHE_PREFIX + workflow_id
+
+
+def save_workflow(workflow_id, workflow):
+    cache.set(workflow_cache_key(workflow_id), workflow, timeout=3600)
+
+
+def get_workflow(workflow_id):
+    if not workflow_id:
+        return None
+    if workflow_id not in session.get("workflow_ids", []):
+        return None
+    return cache.get(workflow_cache_key(workflow_id))
+
+
+def allow_workflow_for_session(workflow_id):
+    workflow_ids = session.get("workflow_ids", [])
+    if workflow_id not in workflow_ids:
+        workflow_ids.append(workflow_id)
+    session["workflow_ids"] = workflow_ids
+
+
+def get_request_workflow_id():
+    return (
+        request.headers.get("X-SurveyUI-Workflow")
+        or request.form.get("workflow_id")
+        or request.args.get("workflow_id")
+    )
+
+
+def require_lti_workflow(view_func):
+    @wraps(view_func)
+    def wrapped_view(*args, **kwargs):
+        if not get_workflow(get_request_workflow_id()):
+            return jsonify({"error": "Unauthorized."}), 401
+        return view_func(*args, **kwargs)
+
+    return wrapped_view
 
 
 def compute_status(start_date, end_date):
@@ -123,8 +166,17 @@ def launch():
         tool_conf,
         launch_data_storage=get_launch_data_storage(),
     )
-    message_launch.get_launch_data()
-    return render_template("surveys.html")
+    launch_data = message_launch.get_launch_data()
+    workflow_id = uuid.uuid4().hex
+    save_workflow(
+        workflow_id,
+        {
+            "workflow_id": workflow_id,
+            "launch_data": launch_data,
+        },
+    )
+    allow_workflow_for_session(workflow_id)
+    return render_template("surveys.html", workflow_id=workflow_id)
 
 
 @app.route("/jwks/", methods=["GET"])
@@ -132,6 +184,7 @@ def jwks():
     return tool_conf.get_jwks()
 
 @app.route("/api/surveys", methods=["GET"])
+@require_lti_workflow
 def get_surveys():
     conn = None
     cursor = None
@@ -162,8 +215,9 @@ def get_surveys():
         )
         rows = cursor.fetchall()
         return jsonify({"data": [serialize_survey(row) for row in rows]})
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+    except Exception:
+        app.logger.exception("Failed to load surveys.")
+        return jsonify({"error": "Error occurred."}), 500
     finally:
         if cursor:
             cursor.close()
@@ -172,6 +226,7 @@ def get_surveys():
 
 
 @app.route("/api/surveys", methods=["POST"])
+@require_lti_workflow
 def create_survey():
     payload = request.get_json(silent=True) or {}
     name = (payload.get("name") or "").strip()
@@ -204,10 +259,11 @@ def create_survey():
         )
         conn.commit()
         return jsonify({"message": "Survey created successfully."}), 201
-    except Exception as exc:
+    except Exception:
         if conn:
             conn.rollback()
-        return jsonify({"error": str(exc)}), 500
+        app.logger.exception("Failed to create survey.")
+        return jsonify({"error": "Error occurred."}), 500
     finally:
         if cursor:
             cursor.close()
@@ -216,6 +272,7 @@ def create_survey():
 
 
 @app.route("/api/surveys/<int:survey_id>", methods=["PUT"])
+@require_lti_workflow
 def update_survey(survey_id):
     payload = request.get_json(silent=True) or {}
     name = (payload.get("name") or "").strip()
@@ -254,10 +311,11 @@ def update_survey(survey_id):
         if cursor.rowcount == 0:
             return jsonify({"error": "Survey not found."}), 404
         return jsonify({"message": "Survey updated successfully."})
-    except Exception as exc:
+    except Exception:
         if conn:
             conn.rollback()
-        return jsonify({"error": str(exc)}), 500
+        app.logger.exception("Failed to update survey.")
+        return jsonify({"error": "Error occurred."}), 500
     finally:
         if cursor:
             cursor.close()
@@ -265,6 +323,7 @@ def update_survey(survey_id):
             conn.close()
 
 @app.route("/api/surveys/<int:survey_id>", methods=["DELETE"])
+@require_lti_workflow
 def delete_survey(survey_id):
     conn = None
     cursor = None
@@ -297,10 +356,11 @@ def delete_survey(survey_id):
         )
         conn.commit()
         return jsonify({"message": "Survey deleted successfully."})
-    except Exception as exc:
+    except Exception:
         if conn:
             conn.rollback()
-        return jsonify({"error": str(exc)}), 500
+        app.logger.exception("Failed to delete survey.")
+        return jsonify({"error": "Error occurred."}), 500
     finally:
         if cursor:
             cursor.close()
@@ -309,6 +369,7 @@ def delete_survey(survey_id):
 
 
 @app.route("/api/surveys/<int:survey_id>/assignments/upload", methods=["POST"])
+@require_lti_workflow
 def upload_assignments(survey_id):
     if "file" not in request.files:
         return jsonify({"error": "CSV file is required."}), 400
@@ -376,10 +437,11 @@ def upload_assignments(survey_id):
         )
         conn.commit()
         return jsonify({"message": f"Uploaded {len(rows_to_insert)} assignment rows successfully."})
-    except Exception as exc:
+    except Exception:
         if conn:
             conn.rollback()
-        return jsonify({"error": str(exc)}), 500
+        app.logger.exception("Failed to upload survey assignments.")
+        return jsonify({"error": "Error occurred."}), 500
     finally:
         if cursor:
             cursor.close()

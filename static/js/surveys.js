@@ -1,8 +1,17 @@
 let surveyTable;
+const workflowId = $('meta[name="surveyui-workflow-id"]').attr('content') || '';
 const surveyModal = new bootstrap.Modal(document.getElementById('surveyModal'));
 const uploadModal = new bootstrap.Modal(document.getElementById('uploadModal'));
 const deleteConfirmModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
 let pendingDeleteSurvey = null;
+
+$.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+        if (workflowId && settings.url && settings.url.toString().startsWith('api/')) {
+            xhr.setRequestHeader('X-SurveyUI-Workflow', workflowId);
+        }
+    }
+});
 
 function escapeHtml(value) {
     return $('<div>').text(value || '').html();
