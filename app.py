@@ -17,7 +17,8 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 load_dotenv()
 
 SECRET_KEY = os.getenv("FLASK_SECRET_KEY")
-CACHE_DIR = os.getenv("FLASK_CACHE_DIR", "/tmp/surveyui-flask-cache")
+APPLICATION_ROOT = os.getenv("APPLICATION_ROOT")
+CACHE_DIR = os.getenv("FLASK_CACHE_DIR", f"/tmp/{APPLICATION_ROOT.lstrip('/')}-flask-cache")
 os.makedirs(CACHE_DIR, exist_ok=True)
 DB_CONFIG = {
     "host": os.getenv("DB_HOST"),
@@ -30,7 +31,7 @@ DB_CONFIG = {
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1, x_prefix=1)
-app.config["APPLICATION_ROOT"] = "/surveyui"
+app.config["APPLICATION_ROOT"] = APPLICATION_ROOT
 app.secret_key = SECRET_KEY
 
 app.config.from_mapping(
@@ -451,4 +452,4 @@ def upload_assignments(survey_id):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5050, debug=True)
+    app.run(host="0.0.0.0", port=5053, debug=True)
